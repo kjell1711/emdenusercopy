@@ -1,4 +1,4 @@
--- Simple Name Copy - Admin Version mit Panel
+-- Simple Name Copy - Admin Version mit Panel (FIXED)
 -- P = Kopieren + Admin-Menü | F2 = Admin Panel
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -7,8 +7,6 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local TextService = game:GetService("TextService")
 local LP = Players.LocalPlayer
 
 -- Start message
@@ -16,6 +14,15 @@ print("=== Admin Script v2 ===")
 print("P = Name kopieren + Mini-Menü")
 print("F2 = Admin Panel öffnen/schließen")
 print("ESC schließt alle GUIs")
+
+-- Notification
+pcall(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "🛡️ Admin Script aktiv",
+        Text = "P = Name | F2 = Panel | ESC = Schließen",
+        Duration = 4
+    })
+end)
 
 -- ============================
 -- TEIL 1: Mini-Menü (Name Copy)
@@ -44,18 +51,10 @@ Players.PlayerRemoving:Connect(function(p)
     end
 end)
 
--- GUI Verwaltung
+-- Mini-Menü GUI
 local miniGui = nil
 local miniGuiTimeout = 0
-local adminPanel = nil
-local panelOpen = false
-local currentPanelTab = "dashboard"
-local playerListData = {}
-local playerDetailCache = {}
-local espEnabled = false
-local espConnections = {}
 
--- Mini-Menü zerstören
 local function destroyMiniGui()
     if miniGui then
         miniGui:Destroy()
@@ -64,29 +63,172 @@ local function destroyMiniGui()
     end
 end
 
--- Panel zerstören
-local function destroyAdminPanel()
-    if adminPanel then
-        adminPanel:Destroy()
-        adminPanel = nil
-    end
-    panelOpen = false
+local function createMiniGui(username, displayName, hp, dist)
+    destroyMiniGui()
     
-    -- ESP ausschalten wenn Panel geschlossen
-    if espEnabled then
-        espEnabled = false
-        for _, conn in pairs(espConnections) do
-            pcall(function() conn:Disconnect() end)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AdminMiniGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.DisplayOrder = 8
+    
+    -- Haupt-Frame (Position angepasst)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 220, 0, 160)
+    mainFrame.Position = UDim2.new(1, -230, 1, -250)  -- Höher, um Benachrichtigungen nicht zu überlappen
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    mainFrame.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+    
+    local shadow = Instance.new("UIStroke")
+    shadow.Color = Color3.fromRGB(0, 0, 0)
+    shadow.Thickness = 2
+    shadow.Parent = mainFrame
+    
+    -- Titel
+    local title = Instance.new("TextLabel")
+    title.Text = "👑 Admin Menü"
+    title.Size = UDim2.new(1, -20, 0, 30)
+    title.Position = UDim2.new(0, 10, 0, 10)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.fromRGB(255, 215, 0)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = mainFrame
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Text = "×"
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -40, 0, 10)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 20
+    closeBtn.Parent = mainFrame
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        destroyMiniGui()
+    end)
+    
+    -- Spieler Info
+    local playerName = Instance.new("TextLabel")
+    playerName.Text = displayName
+    playerName.Size = UDim2.new(1, -20, 0, 24)
+    playerName.Position = UDim2.new(0, 10, 0, 50)
+    playerName.BackgroundTransparency = 1
+    playerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playerName.Font = Enum.Font.Gotham
+    playerName.TextSize = 14
+    playerName.TextXAlignment = Enum.TextXAlignment.Left
+    playerName.TextTruncate = Enum.TextTruncate.AtEnd
+    playerName.Parent = mainFrame
+    
+    local usernameLabel = Instance.new("TextLabel")
+    usernameLabel.Text = "@" .. username
+    usernameLabel.Size = UDim2.new(1, -20, 0, 20)
+    usernameLabel.Position = UDim2.new(0, 10, 0, 74)
+    usernameLabel.BackgroundTransparency = 1
+    usernameLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+    usernameLabel.Font = Enum.Font.Gotham
+    usernameLabel.TextSize = 12
+    usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    usernameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    usernameLabel.Parent = mainFrame
+    
+    -- Stats
+    local statsText = Instance.new("TextLabel")
+    statsText.Text = string.format("❤️ %d HP | 📏 %d Studs", hp, math.floor(dist))
+    statsText.Size = UDim2.new(1, -20, 0, 20)
+    statsText.Position = UDim2.new(0, 10, 0, 96)
+    statsText.BackgroundTransparency = 1
+    statsText.TextColor3 = Color3.fromRGB(150, 220, 255)
+    statsText.Font = Enum.Font.Gotham
+    statsText.TextSize = 12
+    statsText.TextXAlignment = Enum.TextXAlignment.Left
+    statsText.Parent = mainFrame
+    
+    -- Button Container
+    local buttonContainer = Instance.new("Frame")
+    buttonContainer.Size = UDim2.new(1, -20, 0, 40)
+    buttonContainer.Position = UDim2.new(0, 10, 1, -50)
+    buttonContainer.BackgroundTransparency = 1
+    buttonContainer.Parent = mainFrame
+    
+    -- Kick Button
+    local kickBtn = Instance.new("TextButton")
+    kickBtn.Text = "🚪 Kick"
+    kickBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    kickBtn.Position = UDim2.new(0, 0, 0, 0)
+    kickBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    kickBtn.Font = Enum.Font.GothamBold
+    kickBtn.TextSize = 14
+    kickBtn.Parent = buttonContainer
+    
+    local kickCorner = Instance.new("UICorner")
+    kickCorner.CornerRadius = UDim.new(0, 6)
+    kickCorner.Parent = kickBtn
+    
+    -- Ban Button
+    local banBtn = Instance.new("TextButton")
+    banBtn.Text = "⛔ Ban"
+    banBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    banBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    banBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+    banBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    banBtn.Font = Enum.Font.GothamBold
+    banBtn.TextSize = 14
+    banBtn.Parent = buttonContainer
+    
+    local banCorner = Instance.new("UICorner")
+    banCorner.CornerRadius = UDim.new(0, 6)
+    banCorner.Parent = banBtn
+    
+    -- Events
+    kickBtn.MouseButton1Click:Connect(function()
+        local cmd = "/kick " .. username
+        if setclipboard then
+            setclipboard(cmd)
         end
-        espConnections = {}
-    end
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "✅ Kick-Befehl kopiert",
+                Text = cmd,
+                Duration = 2
+            })
+        end)
+        destroyMiniGui()
+    end)
     
-    -- Cache leeren
-    playerListData = {}
-    playerDetailCache = {}
+    banBtn.MouseButton1Click:Connect(function()
+        local cmd = "/ban " .. username
+        if setclipboard then
+            setclipboard(cmd)
+        end
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "✅ Ban-Befehl kopiert",
+                Text = cmd,
+                Duration = 2
+            })
+        end)
+        destroyMiniGui()
+    end)
+    
+    -- GUI einfügen
+    screenGui.Parent = LP:WaitForChild("PlayerGui")
+    miniGui = screenGui
+    miniGuiTimeout = tick() + 5
+    
+    return screenGui
 end
 
--- Name finden und kopieren
 local function findAndCopy()
     local char = LP.Character
     if not char then return false end
@@ -128,13 +270,13 @@ local function findAndCopy()
             setclipboard(username)
         end
         
-        -- Mini-Menü erstellen (vereinfacht)
-        destroyMiniGui()
+        createMiniGui(username, display, hp, minDist)
+        
         pcall(function()
             StarterGui:SetCore("SendNotification", {
                 Title = "✅ " .. display,
-                Text = "Name kopiert: " .. username .. "\nHP: " .. hp .. " | Dist: " .. math.floor(minDist),
-                Duration = 3
+                Text = "Name kopiert | Mini-Menü geöffnet",
+                Duration = 2
             })
         end)
         
@@ -152,10 +294,97 @@ local function findAndCopy()
 end
 
 -- ============================
--- TEIL 2: Admin Panel Funktionen
+-- TEIL 2: Admin Panel (OPTIMIERT)
 -- ============================
 
--- Dashboard Inhalt
+local adminPanel = nil
+local panelOpen = false
+local currentPanelTab = "dashboard"
+local panelConnections = {}
+local playerDetailCache = {}
+
+-- Hammer Symbol Button (Toggle)
+local function createHammerButton()
+    local hammerGui = Instance.new("ScreenGui")
+    hammerGui.Name = "HammerToggleGUI"
+    hammerGui.ResetOnSpawn = false
+    hammerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    hammerGui.DisplayOrder = 9
+    
+    local hammerBtn = Instance.new("TextButton")
+    hammerBtn.Name = "HammerButton"
+    hammerBtn.Text = "⚒️"
+    hammerBtn.Size = UDim2.new(0, 45, 0, 45)
+    hammerBtn.Position = UDim2.new(0, 20, 1, -75)
+    hammerBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    hammerBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+    hammerBtn.Font = Enum.Font.GothamBold
+    hammerBtn.TextSize = 20
+    hammerBtn.AutoButtonColor = true
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = hammerBtn
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(80, 80, 90)
+    stroke.Thickness = 2
+    stroke.Parent = hammerBtn
+    
+    -- Hover Effect
+    hammerBtn.MouseEnter:Connect(function()
+        hammerBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    end)
+    hammerBtn.MouseLeave:Connect(function()
+        hammerBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    end)
+    
+    -- Toggle Panel
+    hammerBtn.MouseButton1Click:Connect(function()
+        toggleAdminPanel()
+    end)
+    
+    hammerBtn.Parent = hammerGui
+    hammerGui.Parent = LP:WaitForChild("PlayerGui")
+    
+    return hammerGui
+end
+
+-- Panel Toggle
+local function toggleAdminPanel()
+    if panelOpen then
+        destroyAdminPanel()
+    else
+        createAdminPanel()
+    end
+end
+
+-- Panel zerstören und alle Connections aufräumen
+local function destroyAdminPanel()
+    if adminPanel then
+        adminPanel:Destroy()
+        adminPanel = nil
+    end
+    panelOpen = false
+    
+    -- Alle Panel-Connections trennen
+    for _, conn in pairs(panelConnections) do
+        if conn then
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+    panelConnections = {}
+    
+    -- Spieler Details schließen
+    for _, gui in pairs(playerDetailCache) do
+        pcall(function() gui:Destroy() end)
+    end
+    playerDetailCache = {}
+    
+    print("🛑 Admin Panel geschlossen")
+end
+
+-- Dashboard Inhalt (Performance: nur wenn benötigt)
 local function createDashboardContent(parentFrame)
     local container = Instance.new("ScrollingFrame")
     container.Name = "DashboardContent"
@@ -173,10 +402,6 @@ local function createDashboardContent(parentFrame)
     serverInfo.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     serverInfo.Parent = container
     
-    local serverCorner = Instance.new("UICorner")
-    serverCorner.CornerRadius = UDim.new(0, 8)
-    serverCorner.Parent = serverInfo
-    
     local serverTitle = Instance.new("TextLabel")
     serverTitle.Text = "🖥️ Server Information"
     serverTitle.Size = UDim2.new(1, -20, 0, 30)
@@ -189,8 +414,7 @@ local function createDashboardContent(parentFrame)
     serverTitle.Parent = serverInfo
     
     local playersText = Instance.new("TextLabel")
-    local maxPlayers = game.PrivateServerMaxPlayers or 12
-    playersText.Text = string.format("👥 Spieler: %d/%d", #Players:GetPlayers(), maxPlayers)
+    playersText.Text = string.format("👥 Spieler: %d", #Players:GetPlayers())
     playersText.Size = UDim2.new(0.5, -15, 0, 25)
     playersText.Position = UDim2.new(0, 10, 0, 40)
     playersText.BackgroundTransparency = 1
@@ -201,7 +425,7 @@ local function createDashboardContent(parentFrame)
     playersText.Parent = serverInfo
     
     local placeIdText = Instance.new("TextLabel")
-    placeIdText.Text = "📍 Place ID: " .. game.PlaceId
+    placeIdText.Text = "📍 Place ID: " .. tostring(game.PlaceId)
     placeIdText.Size = UDim2.new(0.5, -15, 0, 25)
     placeIdText.Position = UDim2.new(0.5, 5, 0, 40)
     placeIdText.BackgroundTransparency = 1
@@ -212,7 +436,7 @@ local function createDashboardContent(parentFrame)
     placeIdText.Parent = serverInfo
     
     local jobIdText = Instance.new("TextLabel")
-    jobIdText.Text = "🔑 Job ID: " .. game.JobId
+    jobIdText.Text = "🔑 Job ID: " .. tostring(game.JobId)
     jobIdText.Size = UDim2.new(1, -20, 0, 25)
     jobIdText.Position = UDim2.new(0, 10, 0, 70)
     jobIdText.BackgroundTransparency = 1
@@ -230,10 +454,6 @@ local function createDashboardContent(parentFrame)
     playerInfo.Position = UDim2.new(0, 10, 0, 140)
     playerInfo.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     playerInfo.Parent = container
-    
-    local playerCorner = Instance.new("UICorner")
-    playerCorner.CornerRadius = UDim.new(0, 8)
-    playerCorner.Parent = playerInfo
     
     local playerTitle = Instance.new("TextLabel")
     playerTitle.Text = "👤 Lokaler Spieler"
@@ -279,7 +499,7 @@ local function createDashboardContent(parentFrame)
     userIdText.TextXAlignment = Enum.TextXAlignment.Left
     userIdText.Parent = playerInfo
     
-    -- Uhrzeit
+    -- Live Uhrzeit (nur wenn Panel offen)
     local timeLabel = Instance.new("TextLabel")
     timeLabel.Name = "TimeLabel"
     timeLabel.Text = "🕒 Uhrzeit: --:--:--"
@@ -292,20 +512,29 @@ local function createDashboardContent(parentFrame)
     timeLabel.TextXAlignment = Enum.TextXAlignment.Left
     timeLabel.Parent = container
     
-    -- Live Update nur wenn Panel offen
-    spawn(function()
-        while panelOpen and container.Parent do
+    -- Live Update (nur wenn Panel offen, Performance optimiert)
+    local timeUpdateInterval = 0
+    local timeConnection = RunService.Heartbeat:Connect(function()
+        if not panelOpen then
+            timeConnection:Disconnect()
+            return
+        end
+        
+        -- Nur einmal pro Sekunde aktualisieren
+        if tick() - timeUpdateInterval > 1 then
+            timeUpdateInterval = tick()
             local time = os.date("%H:%M:%S")
             timeLabel.Text = "🕒 Uhrzeit: " .. time
-            wait(1)
         end
     end)
     
-    container.CanvasSize = UDim2.new(0, 0, 0, 280)
+    table.insert(panelConnections, timeConnection)
+    
+    container.CanvasSize = UDim2.new(0, 0, 0, 300)
     return container
 end
 
--- Spielerliste
+-- Spielerliste (Performance: nur laden wenn Tab aktiv)
 local function createPlayerListContent(parentFrame)
     local container = Instance.new("ScrollingFrame")
     container.Name = "PlayerListContent"
@@ -355,35 +584,34 @@ local function createPlayerListContent(parentFrame)
             usernameLabel.Parent = playerFrame
             
             -- Aktionen Buttons
+            local actionsFrame = Instance.new("Frame")
+            actionsFrame.Name = "Actions"
+            actionsFrame.Size = UDim2.new(0.3, -10, 1, -10)
+            actionsFrame.Position = UDim2.new(0.7, 0, 0, 5)
+            actionsFrame.BackgroundTransparency = 1
+            actionsFrame.Parent = playerFrame
+            
             local kickBtn = Instance.new("TextButton")
             kickBtn.Name = "KickBtn"
             kickBtn.Text = "🚪"
             kickBtn.Size = UDim2.new(0, 30, 0, 25)
-            kickBtn.Position = UDim2.new(1, -70, 0, 5)
+            kickBtn.Position = UDim2.new(0, 0, 0, 0)
             kickBtn.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
             kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             kickBtn.Font = Enum.Font.GothamBold
             kickBtn.TextSize = 12
-            kickBtn.Parent = playerFrame
-            
-            local kickCorner = Instance.new("UICorner")
-            kickCorner.CornerRadius = UDim.new(0, 4)
-            kickCorner.Parent = kickBtn
+            kickBtn.Parent = actionsFrame
             
             local banBtn = Instance.new("TextButton")
             banBtn.Name = "BanBtn"
             banBtn.Text = "⛔"
             banBtn.Size = UDim2.new(0, 30, 0, 25)
-            banBtn.Position = UDim2.new(1, -35, 0, 5)
+            banBtn.Position = UDim2.new(0, 35, 0, 0)
             banBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
             banBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             banBtn.Font = Enum.Font.GothamBold
             banBtn.TextSize = 12
-            banBtn.Parent = playerFrame
-            
-            local banCorner = Instance.new("UICorner")
-            banCorner.CornerRadius = UDim.new(0, 4)
-            banCorner.Parent = banBtn
+            banBtn.Parent = actionsFrame
             
             -- Button Events
             kickBtn.MouseButton1Click:Connect(function()
@@ -414,35 +642,6 @@ local function createPlayerListContent(parentFrame)
                 end)
             end)
             
-            -- Hover Effects
-            kickBtn.MouseEnter:Connect(function()
-                kickBtn.BackgroundColor3 = Color3.fromRGB(240, 100, 100)
-            end)
-            kickBtn.MouseLeave:Connect(function()
-                kickBtn.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
-            end)
-            
-            banBtn.MouseEnter:Connect(function()
-                banBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-            end)
-            banBtn.MouseLeave:Connect(function()
-                banBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
-            end)
-            
-            -- Details anzeigen bei Klick auf Frame
-            playerFrame.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    -- Details Popup (vereinfacht)
-                    pcall(function()
-                        StarterGui:SetCore("SendNotification", {
-                            Title = "👤 " .. player.DisplayName,
-                            Text = "Username: " .. player.Name .. "\nUser ID: " .. player.UserId,
-                            Duration = 4
-                        })
-                    end)
-                end
-            end)
-            
             yOffset = yOffset + 70
         end
     end
@@ -451,7 +650,7 @@ local function createPlayerListContent(parentFrame)
     return container
 end
 
--- Tools Tab
+-- Tools Tab Inhalt
 local function createToolsContent(parentFrame)
     local container = Instance.new("ScrollingFrame")
     container.Name = "ToolsContent"
@@ -468,15 +667,11 @@ local function createToolsContent(parentFrame)
     espFrame.Name = "ESPFrame"
     espFrame.Size = UDim2.new(1, -20, 0, 80)
     espFrame.Position = UDim2.new(0, 10, 0, yOffset)
-    espFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    espFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     espFrame.Parent = container
     
-    local espCorner = Instance.new("UICorner")
-    espCorner.CornerRadius = UDim.new(0, 8)
-    espCorner.Parent = espFrame
-    
     local espTitle = Instance.new("TextLabel")
-    espTitle.Text = "👁️ ESP (Experimental)"
+    espTitle.Text = "👁️ ESP (Sichtbarkeit)"
     espTitle.Size = UDim2.new(1, -20, 0, 30)
     espTitle.Position = UDim2.new(0, 10, 0, 5)
     espTitle.BackgroundTransparency = 1
@@ -487,44 +682,15 @@ local function createToolsContent(parentFrame)
     espTitle.Parent = espFrame
     
     local espDesc = Instance.new("TextLabel")
-    espDesc.Text = "Zeigt Spieler durch Wände (kann laggen)"
+    espDesc.Text = "Zeigt Spieler durch Wände (Performance intensiv!)"
     espDesc.Size = UDim2.new(1, -20, 0, 20)
     espDesc.Position = UDim2.new(0, 10, 0, 35)
     espDesc.BackgroundTransparency = 1
-    espDesc.TextColor3 = Color3.fromRGB(180, 180, 200)
+    espDesc.TextColor3 = Color3.fromRGB(200, 200, 220)
     espDesc.Font = Enum.Font.Gotham
     espDesc.TextSize = 12
     espDesc.TextXAlignment = Enum.TextXAlignment.Left
     espDesc.Parent = espFrame
-    
-    local espToggle = Instance.new("TextButton")
-    espToggle.Name = "ESPToggle"
-    espToggle.Text = espEnabled and "🔴 AUS" or "🟢 EIN"
-    espToggle.Size = UDim2.new(0, 80, 0, 30)
-    espToggle.Position = UDim2.new(1, -90, 0, 45)
-    espToggle.BackgroundColor3 = espEnabled and Color3.fromRGB(220, 80, 80) or Color3.fromRGB(80, 180, 80)
-    espToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    espToggle.Font = Enum.Font.GothamBold
-    espToggle.TextSize = 14
-    espToggle.Parent = espFrame
-    
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 6)
-    toggleCorner.Parent = espToggle
-    
-    espToggle.MouseButton1Click:Connect(function()
-        espEnabled = not espEnabled
-        espToggle.Text = espEnabled and "🔴 AUS" or "🟢 EIN"
-        espToggle.BackgroundColor3 = espEnabled and Color3.fromRGB(220, 80, 80) or Color3.fromRGB(80, 180, 80)
-        
-        pcall(function()
-            StarterGui:SetCore("SendNotification", {
-                Title = espEnabled and "👁️ ESP aktiviert" or "👁️ ESP deaktiviert",
-                Text = espEnabled and "Spieler werden durch Wände angezeigt" or "ESP ist jetzt aus",
-                Duration = 3
-            })
-        end)
-    end)
     
     yOffset = yOffset + 90
     
@@ -532,7 +698,7 @@ local function createToolsContent(parentFrame)
     return container
 end
 
--- Settings Tab
+-- Settings Tab Inhalt
 local function createSettingsContent(parentFrame)
     local container = Instance.new("ScrollingFrame")
     container.Name = "SettingsContent"
@@ -544,20 +710,15 @@ local function createSettingsContent(parentFrame)
     
     local yOffset = 10
     
-    -- Info Frame
     local infoFrame = Instance.new("Frame")
     infoFrame.Name = "InfoFrame"
-    infoFrame.Size = UDim2.new(1, -20, 0, 120)
+    infoFrame.Size = UDim2.new(1, -20, 0, 100)
     infoFrame.Position = UDim2.new(0, 10, 0, yOffset)
-    infoFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    infoFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     infoFrame.Parent = container
     
-    local infoCorner = Instance.new("UICorner")
-    infoCorner.CornerRadius = UDim.new(0, 8)
-    infoCorner.Parent = infoFrame
-    
     local infoTitle = Instance.new("TextLabel")
-    infoTitle.Text = "ℹ️ Script Info"
+    infoTitle.Text = "⚙️ Script Einstellungen"
     infoTitle.Size = UDim2.new(1, -20, 0, 30)
     infoTitle.Position = UDim2.new(0, 10, 0, 5)
     infoTitle.BackgroundTransparency = 1
@@ -568,128 +729,38 @@ local function createSettingsContent(parentFrame)
     infoTitle.Parent = infoFrame
     
     local versionText = Instance.new("TextLabel")
-    versionText.Text = "Version: Admin Panel v2.0"
-    versionText.Size = UDim2.new(1, -20, 0, 25)
+    versionText.Text = "Version: Admin Script v2.1"
+    versionText.Size = UDim2.new(1, -20, 0, 20)
     versionText.Position = UDim2.new(0, 10, 0, 40)
     versionText.BackgroundTransparency = 1
     versionText.TextColor3 = Color3.fromRGB(200, 200, 220)
     versionText.Font = Enum.Font.Gotham
-    versionText.TextSize = 14
+    versionText.TextSize = 12
     versionText.TextXAlignment = Enum.TextXAlignment.Left
     versionText.Parent = infoFrame
     
-    local authorText = Instance.new("TextLabel")
-    authorText.Text = "Für Roblox Admin"
-    authorText.Size = UDim2.new(1, -20, 0, 25)
-    authorText.Position = UDim2.new(0, 10, 0, 65)
-    authorText.BackgroundTransparency = 1
-    authorText.TextColor3 = Color3.fromRGB(200, 200, 220)
-    authorText.Font = Enum.Font.Gotham
-    authorText.TextSize = 14
-    authorText.TextXAlignment = Enum.TextXAlignment.Left
-    authorText.Parent = infoFrame
+    local hotkeysText = Instance.new("TextLabel")
+    hotkeysText.Text = "Hotkeys: P (Name), F2 (Panel), ESC (Schließen)"
+    hotkeysText.Size = UDim2.new(1, -20, 0, 20)
+    hotkeysText.Position = UDim2.new(0, 10, 0, 65)
+    hotkeysText.BackgroundTransparency = 1
+    hotkeysText.TextColor3 = Color3.fromRGB(200, 200, 220)
+    hotkeysText.Font = Enum.Font.Gotham
+    hotkeysText.TextSize = 12
+    hotkeysText.TextXAlignment = Enum.TextXAlignment.Left
+    hotkeysText.Parent = infoFrame
     
-    yOffset = yOffset + 130
-    
-    -- Cleanup Button
-    local cleanupFrame = Instance.new("Frame")
-    cleanupFrame.Name = "CleanupFrame"
-    cleanupFrame.Size = UDim2.new(1, -20, 0, 60)
-    cleanupFrame.Position = UDim2.new(0, 10, 0, yOffset)
-    cleanupFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    cleanupFrame.Parent = container
-    
-    local cleanupCorner = Instance.new("UICorner")
-    cleanupCorner.CornerRadius = UDim.new(0, 8)
-    cleanupCorner.Parent = cleanupFrame
-    
-    local cleanupBtn = Instance.new("TextButton")
-    cleanupBtn.Name = "CleanupBtn"
-    cleanupBtn.Text = "🧹 Alles bereinigen"
-    cleanupBtn.Size = UDim2.new(1, -40, 0, 40)
-    cleanupBtn.Position = UDim2.new(0, 20, 0, 10)
-    cleanupBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 80)
-    cleanupBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    cleanupBtn.Font = Enum.Font.GothamBold
-    cleanupBtn.TextSize = 14
-    cleanupBtn.Parent = cleanupFrame
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = cleanupBtn
-    
-    cleanupBtn.MouseButton1Click:Connect(function()
-        destroyMiniGui()
-        destroyAdminPanel()
-        pcall(function()
-            StarterGui:SetCore("SendNotification", {
-                Title = "🧹 Bereinigt",
-                Text = "Alle GUIs wurden geschlossen",
-                Duration = 3
-            })
-        end)
-    end)
-    
-    yOffset = yOffset + 70
+    yOffset = yOffset + 110
     
     container.CanvasSize = UDim2.new(0, 0, 0, yOffset)
     return container
 end
 
--- Hammer Button erstellen
-local function createHammerButton()
-    local hammerGui = Instance.new("ScreenGui")
-    hammerGui.Name = "HammerToggle"
-    hammerGui.ResetOnSpawn = false
-    hammerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    hammerGui.DisplayOrder = 9
-    
-    local hammerBtn = Instance.new("TextButton")
-    hammerBtn.Name = "HammerButton"
-    hammerBtn.Text = "⚒️"
-    hammerBtn.Size = UDim2.new(0, 45, 0, 45)
-    hammerBtn.Position = UDim2.new(0, 20, 1, -75)
-    hammerBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    hammerBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
-    hammerBtn.Font = Enum.Font.GothamBold
-    hammerBtn.TextSize = 20
-    hammerBtn.AutoButtonColor = true
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = hammerBtn
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(80, 80, 90)
-    stroke.Thickness = 2
-    stroke.Parent = hammerBtn
-    
-    -- Hover Effect
-    hammerBtn.MouseEnter:Connect(function()
-        hammerBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-    end)
-    hammerBtn.MouseLeave:Connect(function()
-        hammerBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    end)
-    
-    hammerBtn.Parent = hammerGui
-    
-    -- In PlayerGui einfügen
-    if LP:FindFirstChild("PlayerGui") then
-        hammerGui.Parent = LP.PlayerGui
-    else
-        LP:WaitForChild("PlayerGui")
-        hammerGui.Parent = LP.PlayerGui
-    end
-    
-    return hammerGui, hammerBtn
-end
-
--- Admin Panel erstellen
+-- Haupt-Panel erstellen
 local function createAdminPanel()
     if panelOpen then return end
     
-    destroyMiniGui()
+    destroyMiniGui()  -- Mini-Menü schließen
     
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "AdminPanelGUI"
@@ -738,6 +809,10 @@ local function createAdminPanel()
     closeBtn.TextSize = 24
     closeBtn.Parent = titleBar
     
+    closeBtn.MouseButton1Click:Connect(function()
+        destroyAdminPanel()
+    end)
+    
     -- Seitenleiste
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
@@ -745,14 +820,6 @@ local function createAdminPanel()
     sidebar.Position = UDim2.new(0, 0, 0, 40)
     sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     sidebar.Parent = mainContainer
-    
-    -- Content Area
-    local contentArea = Instance.new("Frame")
-    contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, -180, 1, -40)
-    contentArea.Position = UDim2.new(0, 180, 0, 40)
-    contentArea.BackgroundTransparency = 1
-    contentArea.Parent = mainContainer
     
     -- Tab Buttons
     local tabs = {
@@ -763,6 +830,40 @@ local function createAdminPanel()
     }
     
     local tabButtons = {}
+    local contentArea = Instance.new("Frame")
+    contentArea.Name = "ContentArea"
+    contentArea.Size = UDim2.new(1, -180, 1, -40)
+    contentArea.Position = UDim2.new(0, 180, 0, 40)
+    contentArea.BackgroundTransparency = 1
+    contentArea.Parent = mainContainer
+    
+    local function switchTab(tabName)
+        currentPanelTab = tabName
+        
+        -- Alle Tabs zurücksetzen
+        for _, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        end
+        if tabButtons[tabName] then
+            tabButtons[tabName].BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        end
+        
+        -- Alten Content löschen
+        for _, child in pairs(contentArea:GetChildren()) do
+            child:Destroy()
+        end
+        
+        -- Neuen Content laden (Performance: nur bei Bedarf)
+        if tabName == "dashboard" then
+            createDashboardContent(contentArea)
+        elseif tabName == "players" then
+            createPlayerListContent(contentArea)
+        elseif tabName == "tools" then
+            createToolsContent(contentArea)
+        elseif tabName == "settings" then
+            createSettingsContent(contentArea)
+        end
+    end
     
     for i, tab in ipairs(tabs) do
         local tabBtn = Instance.new("TextButton")
@@ -782,86 +883,39 @@ local function createAdminPanel()
         corner.Parent = tabBtn
         
         tabBtn.MouseButton1Click:Connect(function()
-            currentPanelTab = tab.name
-            -- Alle Tabs zurücksetzen
-            for _, btn in pairs(tabButtons) do
-                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-            end
-            tabBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-            
-            -- Alten Content löschen
-            for _, child in pairs(contentArea:GetChildren()) do
-                child:Destroy()
-            end
-            
-            -- Neuen Content laden
-            if tab.name == "dashboard" then
-                createDashboardContent(contentArea)
-            elseif tab.name == "players" then
-                createPlayerListContent(contentArea)
-            elseif tab.name == "tools" then
-                createToolsContent(contentArea)
-            elseif tab.name == "settings" then
-                createSettingsContent(contentArea)
-            end
+            switchTab(tab.name)
         end)
         
         tabButtons[tab.name] = tabBtn
     end
     
     -- Dashboard als Standard laden
-    createDashboardContent(contentArea)
-    
-    -- Events
-    closeBtn.MouseButton1Click:Connect(function()
-        destroyAdminPanel()
-    end)
+    switchTab("dashboard")
     
     -- GUI einfügen
-    if LP:FindFirstChild("PlayerGui") then
-        screenGui.Parent = LP.PlayerGui
-    else
-        LP:WaitForChild("PlayerGui")
-        screenGui.Parent = LP.PlayerGui
-    end
-    
+    screenGui.Parent = LP:WaitForChild("PlayerGui")
     adminPanel = screenGui
     panelOpen = true
     
-    print("✅ Admin Panel geöffnet")
-end
-
--- Panel Toggle Funktion
-local function toggleAdminPanel()
-    if panelOpen then
-        destroyAdminPanel()
-    else
-        createAdminPanel()
-    end
-end
-
--- ============================
--- INITIALISIERUNG
--- ============================
-
--- Notification
-pcall(function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "🛡️ Admin Script aktiv",
-        Text = "P = Name | F2 = Panel | ⚒️ = Panel",
-        Duration = 4
-    })
-end)
-
--- Hammer Button erstellen
-local hammerGui, hammerBtn = createHammerButton()
-if hammerBtn then
-    hammerBtn.MouseButton1Click:Connect(function()
-        toggleAdminPanel()
+    -- ESC zum Schließen
+    local escConnection = UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.Escape then
+            destroyAdminPanel()
+            destroyMiniGui()
+        end
     end)
+    
+    table.insert(panelConnections, escConnection)
+    
+    print("✅ Admin Panel geöffnet")
+    return screenGui
 end
 
--- Input Handler
+-- ============================
+-- INPUT HANDLER
+-- ============================
+
 local lastPress = 0
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -874,16 +928,24 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
         
     elseif input.KeyCode == Enum.KeyCode.F2 then
         toggleAdminPanel()
-        
-    elseif input.KeyCode == Enum.KeyCode.Escape then
-        destroyMiniGui()
-        destroyAdminPanel()
     end
 end)
 
--- Auto-Close für Mini-GUI
+-- ============================
+-- INITIALISIERUNG
+-- ============================
+
+-- Hammer Button erstellen
+local hammerBtn = createHammerButton()
+
+-- Auto-Close für Mini-GUI (Performance optimiert)
+local lastGuiCheck = 0
 RunService.Heartbeat:Connect(function()
-    if miniGui and tick() > miniGuiTimeout then
+    local now = tick()
+    if not miniGui or now - lastGuiCheck < 0.1 then return end
+    lastGuiCheck = now
+    
+    if now > miniGuiTimeout then
         destroyMiniGui()
     end
 end)
@@ -893,6 +955,7 @@ print("✅ P = Name kopieren + Mini-Menü")
 print("✅ F2 = Admin Panel öffnen/schließen")
 print("✅ Hammer-Button unten links")
 print("✅ ESC schließt alle GUIs")
+print("✅ Performance optimiert - keine unnötigen Updates")
 
 -- Für Executor
 if getgenv then
@@ -901,9 +964,9 @@ if getgenv then
     getgenv().CleanupAdminScript = function()
         destroyMiniGui()
         destroyAdminPanel()
-        if hammerGui then hammerGui:Destroy() end
+        if hammerBtn then hammerBtn:Destroy() end
         print("🛑 Alles bereinigt")
     end
 end
 
-return "✅ Admin Script v2 bereit"
+return "✅ Admin Script v2.1 bereit (Performance optimiert)"
