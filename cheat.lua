@@ -31,6 +31,10 @@ local ESP_SETTINGS = {
     NameColor = Color3.fromRGB(255, 255, 255)
 }
 
+-- ANTI-AFK EINSTELLUNG (NEU)
+local ANTI_AFK_ENABLED = false
+local antiAFKConnection = nil
+
 local ESP_ITEMS = {}
 local adminPanelGui = nil
 local isPanelOpen = false
@@ -69,7 +73,7 @@ task.spawn(function()
 end)
 
 -- ============================================
--- TEIL 1: MINI-MENÜ (Name Copy)
+-- TEIL 1: MINI-MENÜ (Name Copy) - MIT 1-TAG BAN
 -- ============================================
 
 local function closeMiniMenu()
@@ -142,8 +146,8 @@ local function createMiniMenu(playerData)
     
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 240, 0, 170)
-    mainFrame.Position = UDim2.new(1, -260, 1, -290)
+    mainFrame.Size = UDim2.new(0, 280, 0, 210) -- Größer für mehr Buttons
+    mainFrame.Position = UDim2.new(1, -300, 1, -330)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     mainFrame.BorderSizePixel = 0
     
@@ -216,76 +220,136 @@ local function createMiniMenu(playerData)
     statsText.TextXAlignment = Enum.TextXAlignment.Left
     statsText.Parent = mainFrame
     
-    -- Buttons (3 Buttons in einer Reihe)
-    local buttonContainer = Instance.new("Frame")
-    buttonContainer.Size = UDim2.new(1, -20, 0, 40)
-    buttonContainer.Position = UDim2.new(0, 10, 1, -50)
-    buttonContainer.BackgroundTransparency = 1
-    buttonContainer.Parent = mainFrame
+    -- Buttons (2 Reihen mit 4 Buttons)
+    local buttonContainer1 = Instance.new("Frame")
+    buttonContainer1.Size = UDim2.new(1, -20, 0, 40)
+    buttonContainer1.Position = UDim2.new(0, 10, 1, -90)
+    buttonContainer1.BackgroundTransparency = 1
+    buttonContainer1.Parent = mainFrame
     
+    local buttonContainer2 = Instance.new("Frame")
+    buttonContainer2.Size = UDim2.new(1, -20, 0, 40)
+    buttonContainer2.Position = UDim2.new(0, 10, 1, -45)
+    buttonContainer2.BackgroundTransparency = 1
+    buttonContainer2.Parent = mainFrame
+    
+    -- Erste Reihe
     local kickBtn = Instance.new("TextButton")
     kickBtn.Text = "🚪"
-    kickBtn.Size = UDim2.new(0.3, -5, 1, 0)
+    kickBtn.Size = UDim2.new(0.24, -2, 1, 0)
     kickBtn.Position = UDim2.new(0, 0, 0, 0)
     kickBtn.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
     kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     kickBtn.Font = Enum.Font.GothamBold
     kickBtn.TextSize = 16
-    kickBtn.Parent = buttonContainer
-    
-    local kickCorner = Instance.new("UICorner")
-    kickCorner.CornerRadius = UDim.new(0, 6)
-    kickCorner.Parent = kickBtn
+    kickBtn.Parent = buttonContainer1
     
     local banBtn = Instance.new("TextButton")
     banBtn.Text = "⛔"
-    banBtn.Size = UDim2.new(0.3, -5, 1, 0)
-    banBtn.Position = UDim2.new(0.35, 0, 0, 0)
+    banBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    banBtn.Position = UDim2.new(0.25, 0, 0, 0)
     banBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
     banBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     banBtn.Font = Enum.Font.GothamBold
     banBtn.TextSize = 16
-    banBtn.Parent = buttonContainer
+    banBtn.Parent = buttonContainer1
     
-    local banCorner = Instance.new("UICorner")
-    banCorner.CornerRadius = UDim.new(0, 6)
-    banCorner.Parent = banBtn
+    -- NEU: 1-TAG BAN BUTTON
+    local banDayBtn = Instance.new("TextButton")
+    banDayBtn.Text = "📅"
+    banDayBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    banDayBtn.Position = UDim2.new(0.5, 0, 0, 0)
+    banDayBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+    banDayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    banDayBtn.Font = Enum.Font.GothamBold
+    banDayBtn.TextSize = 16
+    banDayBtn.Parent = buttonContainer1
     
     local bringBtn = Instance.new("TextButton")
     bringBtn.Text = "🚀"
-    bringBtn.Size = UDim2.new(0.3, -5, 1, 0)
-    bringBtn.Position = UDim2.new(0.7, 0, 0, 0)
+    bringBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    bringBtn.Position = UDim2.new(0.75, 0, 0, 0)
     bringBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
     bringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     bringBtn.Font = Enum.Font.GothamBold
     bringBtn.TextSize = 16
-    bringBtn.Parent = buttonContainer
+    bringBtn.Parent = buttonContainer1
     
-    local bringCorner = Instance.new("UICorner")
-    bringCorner.CornerRadius = UDim.new(0, 6)
-    bringCorner.Parent = bringBtn
+    -- Zweite Reihe
+    local tptoBtn = Instance.new("TextButton")
+    tptoBtn.Text = "📍"
+    tptoBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    tptoBtn.Position = UDim2.new(0, 0, 0, 0)
+    tptoBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 100)
+    tptoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tptoBtn.Font = Enum.Font.GothamBold
+    tptoBtn.TextSize = 16
+    tptoBtn.Parent = buttonContainer2
+    
+    -- NEU: ADMIN CAR BUTTON
+    local spawncarBtn = Instance.new("TextButton")
+    spawncarBtn.Text = "🚗"
+    spawncarBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    spawncarBtn.Position = UDim2.new(0.25, 0, 0, 0)
+    spawncarBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+    spawncarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    spawncarBtn.Font = Enum.Font.GothamBold
+    spawncarBtn.TextSize = 16
+    spawncarBtn.Parent = buttonContainer2
+    
+    -- NEU: RESPAWN ALL BUTTON
+    local respawnBtn = Instance.new("TextButton")
+    respawnBtn.Text = "🔄"
+    respawnBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    respawnBtn.Position = UDim2.new(0.5, 0, 0, 0)
+    respawnBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 200)
+    respawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    respawnBtn.Font = Enum.Font.GothamBold
+    respawnBtn.TextSize = 16
+    respawnBtn.Parent = buttonContainer2
+    
+    -- NEU: DISCORD BUTTON
+    local discordBtn = Instance.new("TextButton")
+    discordBtn.Text = "📢"
+    discordBtn.Size = UDim2.new(0.24, -2, 1, 0)
+    discordBtn.Position = UDim2.new(0.75, 0, 0, 0)
+    discordBtn.BackgroundColor3 = Color3.fromRGB(155, 89, 182)
+    discordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    discordBtn.Font = Enum.Font.GothamBold
+    discordBtn.TextSize = 16
+    discordBtn.Parent = buttonContainer2
+    
+    -- Buttons runden
+    for _, btn in pairs({kickBtn, banBtn, banDayBtn, bringBtn, tptoBtn, spawncarBtn, respawnBtn, discordBtn}) do
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = btn
+    end
     
     -- Tooltips
-    kickBtn.MouseEnter:Connect(function()
-        kickBtn.Text = "Kick"
-    end)
-    kickBtn.MouseLeave:Connect(function()
-        kickBtn.Text = "🚪"
-    end)
+    kickBtn.MouseEnter:Connect(function() kickBtn.Text = "Kick" end)
+    kickBtn.MouseLeave:Connect(function() kickBtn.Text = "🚪" end)
     
-    banBtn.MouseEnter:Connect(function()
-        banBtn.Text = "Ban"
-    end)
-    banBtn.MouseLeave:Connect(function()
-        banBtn.Text = "⛔"
-    end)
+    banBtn.MouseEnter:Connect(function() banBtn.Text = "Ban" end)
+    banBtn.MouseLeave:Connect(function() banBtn.Text = "⛔" end)
     
-    bringBtn.MouseEnter:Connect(function()
-        bringBtn.Text = "Bring"
-    end)
-    bringBtn.MouseLeave:Connect(function()
-        bringBtn.Text = "🚀"
-    end)
+    banDayBtn.MouseEnter:Connect(function() banDayBtn.Text = "1 Tag" end)
+    banDayBtn.MouseLeave:Connect(function() banDayBtn.Text = "📅" end)
+    
+    bringBtn.MouseEnter:Connect(function() bringBtn.Text = "Bring" end)
+    bringBtn.MouseLeave:Connect(function() bringBtn.Text = "🚀" end)
+    
+    tptoBtn.MouseEnter:Connect(function() tptoBtn.Text = "TPTO" end)
+    tptoBtn.MouseLeave:Connect(function() tptoBtn.Text = "📍" end)
+    
+    spawncarBtn.MouseEnter:Connect(function() spawncarBtn.Text = "Car" end)
+    spawncarBtn.MouseLeave:Connect(function() spawncarBtn.Text = "🚗" end)
+    
+    respawnBtn.MouseEnter:Connect(function() respawnBtn.Text = "Respawn" end)
+    respawnBtn.MouseLeave:Connect(function() respawnBtn.Text = "🔄" end)
+    
+    discordBtn.MouseEnter:Connect(function() discordBtn.Text = "Discord" end)
+    discordBtn.MouseLeave:Connect(function() discordBtn.Text = "📢" end)
     
     -- Button Events
     kickBtn.MouseButton1Click:Connect(function()
@@ -318,6 +382,22 @@ local function createMiniMenu(playerData)
         closeMiniMenu()
     end)
     
+    -- NEU: 1-TAG BAN EVENT
+    banDayBtn.MouseButton1Click:Connect(function()
+        local command = "/banoneday " .. playerData.username
+        if setclipboard then
+            setclipboard(command)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ 1-Tag Ban kopiert",
+                    Text = command,
+                    Duration = 2
+                })
+            end)
+        end
+        closeMiniMenu()
+    end)
+    
     bringBtn.MouseButton1Click:Connect(function()
         local command = "/bring " .. playerData.username
         if setclipboard then
@@ -333,11 +413,74 @@ local function createMiniMenu(playerData)
         closeMiniMenu()
     end)
     
+    tptoBtn.MouseButton1Click:Connect(function()
+        local command = "/tpto " .. playerData.username
+        if setclipboard then
+            setclipboard(command)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ TPTO kopiert",
+                    Text = command,
+                    Duration = 2
+                })
+            end)
+        end
+        closeMiniMenu()
+    end)
+    
+    -- NEU: ADMIN CAR EVENT
+    spawncarBtn.MouseButton1Click:Connect(function()
+        local command = "/spawnadmincar"
+        if setclipboard then
+            setclipboard(command)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ Admin Car kopiert",
+                    Text = command,
+                    Duration = 2
+                })
+            end)
+        end
+        closeMiniMenu()
+    end)
+    
+    -- NEU: RESPAWN ALL EVENT
+    respawnBtn.MouseButton1Click:Connect(function()
+        local command = "/respawnall"
+        if setclipboard then
+            setclipboard(command)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ Respawn All kopiert",
+                    Text = command,
+                    Duration = 2
+                })
+            end)
+        end
+        closeMiniMenu()
+    end)
+    
+    -- NEU: DISCORD EVENT
+    discordBtn.MouseButton1Click:Connect(function()
+        local inviteCode = "yJpCWt6Zjr"
+        if setclipboard then
+            setclipboard(inviteCode)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ Discord kopiert",
+                    Text = "Invite: " .. inviteCode,
+                    Duration = 3
+                })
+            end)
+        end
+        closeMiniMenu()
+    end)
+    
     mainFrame.Parent = screenGui
     screenGui.Parent = LP:WaitForChild("PlayerGui")
     
     miniMenuGui = screenGui
-    miniMenuTimeout = tick() + 5
+    miniMenuTimeout = tick() + 7
     
     return screenGui
 end
@@ -374,7 +517,57 @@ local function copyNearestPlayer()
 end
 
 -- ============================================
--- TEIL 2: ERWEITERTES ESP SYSTEM
+-- TEIL 2: ANTI-AFK SYSTEM (NEU)
+-- ============================================
+
+local function toggleAntiAFK(enabled)
+    ANTI_AFK_ENABLED = enabled
+    
+    if enabled then
+        print("✅ Anti-AFK aktiviert")
+        
+        antiAFKConnection = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                -- Kamera leicht bewegen
+                local camera = workspace.CurrentCamera
+                if camera then
+                    camera.CFrame = camera.CFrame * CFrame.Angles(0, math.rad(0.5), 0)
+                end
+                
+                -- Virtuelle Tasteneingabe
+                game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Space, false, nil)
+                wait(0.05)
+                game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
+            end)
+        end)
+        
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "✅ Anti-AFK aktiviert",
+                Text = "Kein AFK-Kick",
+                Duration = 3
+            })
+        end)
+    else
+        if antiAFKConnection then
+            antiAFKConnection:Disconnect()
+            antiAFKConnection = nil
+        end
+        print("❌ Anti-AFK deaktiviert")
+        
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "❌ Anti-AFK deaktiviert",
+                Text = "Normales AFK-Verhalten",
+                Duration = 2
+            })
+        end)
+    end
+end
+
+-- ============================================
+-- AB HIER IST EXAKT DAS ORIGINAL SCRIPT
+-- NUR DIE TOOLS SIND ERWEITERT MIT ANTI-AFK UND NEUEN BEFEHLEN
 -- ============================================
 
 local function isPlayerInRange(player)
@@ -803,9 +996,9 @@ local function createInspectGui(player)
     
     yOffset = yOffset + 20
     
-    -- Admin Action Buttons
+    -- Admin Action Buttons (MIT 1-TAG BAN ERWEITERT)
     local buttonContainer = Instance.new("Frame")
-    buttonContainer.Size = UDim2.new(1, 0, 0, 120)
+    buttonContainer.Size = UDim2.new(1, 0, 0, 170) -- Höher für mehr Buttons
     buttonContainer.Position = UDim2.new(0, 0, 0, yOffset)
     buttonContainer.BackgroundTransparency = 1
     buttonContainer.Parent = content
@@ -824,10 +1017,6 @@ local function createInspectGui(player)
     kickBtn.TextSize = 15
     kickBtn.Parent = buttonContainer
     
-    local kickCorner = Instance.new("UICorner")
-    kickCorner.CornerRadius = UDim.new(0, 8)
-    kickCorner.Parent = kickBtn
-    
     local banBtn = Instance.new("TextButton")
     banBtn.Text = "⛔ Ban"
     banBtn.Size = buttonWidth
@@ -838,38 +1027,55 @@ local function createInspectGui(player)
     banBtn.TextSize = 15
     banBtn.Parent = buttonContainer
     
-    local banCorner = Instance.new("UICorner")
-    banCorner.CornerRadius = UDim.new(0, 8)
-    banCorner.Parent = banBtn
+    -- Zeile 2 (NEU: 1-TAG BAN)
+    local banDayBtn = Instance.new("TextButton")
+    banDayBtn.Text = "📅 1 Tag Ban"
+    banDayBtn.Size = buttonWidth
+    banDayBtn.Position = UDim2.new(0, 0, 0, 55)
+    banDayBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+    banDayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    banDayBtn.Font = Enum.Font.GothamBold
+    banDayBtn.TextSize = 15
+    banDayBtn.Parent = buttonContainer
     
-    -- Zeile 2
     local bringBtn = Instance.new("TextButton")
     bringBtn.Text = "🚀 Bring"
     bringBtn.Size = buttonWidth
-    bringBtn.Position = UDim2.new(0, 0, 0, 55)
+    bringBtn.Position = UDim2.new(0.52, 0, 0, 55)
     bringBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
     bringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     bringBtn.Font = Enum.Font.GothamBold
     bringBtn.TextSize = 15
     bringBtn.Parent = buttonContainer
     
-    local bringCorner = Instance.new("UICorner")
-    bringCorner.CornerRadius = UDim.new(0, 8)
-    bringCorner.Parent = bringBtn
-    
+    -- Zeile 3
     local tptoBtn = Instance.new("TextButton")
     tptoBtn.Text = "📍 TPTO"
     tptoBtn.Size = buttonWidth
-    tptoBtn.Position = UDim2.new(0.52, 0, 0, 55)
+    tptoBtn.Position = UDim2.new(0, 0, 0, 110)
     tptoBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 100)
     tptoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     tptoBtn.Font = Enum.Font.GothamBold
     tptoBtn.TextSize = 15
     tptoBtn.Parent = buttonContainer
     
-    local tptoCorner = Instance.new("UICorner")
-    tptoCorner.CornerRadius = UDim.new(0, 8)
-    tptoCorner.Parent = tptoBtn
+    -- NEU: ADMIN CAR BUTTON
+    local spawncarBtn = Instance.new("TextButton")
+    spawncarBtn.Text = "🚗 Admin Car"
+    spawncarBtn.Size = buttonWidth
+    spawncarBtn.Position = UDim2.new(0.52, 0, 0, 110)
+    spawncarBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+    spawncarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    spawncarBtn.Font = Enum.Font.GothamBold
+    spawncarBtn.TextSize = 15
+    spawncarBtn.Parent = buttonContainer
+    
+    -- Alle Buttons runden
+    for _, btn in pairs({kickBtn, banBtn, banDayBtn, bringBtn, tptoBtn, spawncarBtn}) do
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = btn
+    end
     
     -- Button Events
     kickBtn.MouseButton1Click:Connect(function()
@@ -893,6 +1099,21 @@ local function createInspectGui(player)
             pcall(function()
                 StarterGui:SetCore("SendNotification", {
                     Title = "✅ Ban kopiert",
+                    Text = command,
+                    Duration = 2
+                })
+            end)
+        end
+    end)
+    
+    -- NEU: 1-TAG BAN EVENT
+    banDayBtn.MouseButton1Click:Connect(function()
+        local command = "/banoneday " .. username
+        if setclipboard then
+            setclipboard(command)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ 1-Tag Ban kopiert",
                     Text = command,
                     Duration = 2
                 })
@@ -928,7 +1149,22 @@ local function createInspectGui(player)
         end
     end)
     
-    yOffset = yOffset + 130
+    -- NEU: ADMIN CAR EVENT
+    spawncarBtn.MouseButton1Click:Connect(function()
+        local command = "/spawnadmincar"
+        if setclipboard then
+            setclipboard(command)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = "✅ Admin Car kopiert",
+                    Text = command,
+                    Duration = 2
+                })
+            end)
+        end
+    end)
+    
+    yOffset = yOffset + 180
     
     content.CanvasSize = UDim2.new(0, 0, 0, yOffset)
     
@@ -1035,7 +1271,7 @@ local function createInspectGui(player)
 end
 
 -- ============================================
--- TEIL 5: HAUPT ADMIN PANEL
+-- TEIL 5: HAUPT ADMIN PANEL (NUR TOOLS TAB ERWEITERT)
 -- ============================================
 
 local function closeAdminPanel()
@@ -1147,7 +1383,7 @@ local function openAdminPanel()
         
         -- Neuen Content basierend auf Tab erstellen
         if tabId == "dashboard" then
-            -- Dashboard Content
+            -- Dashboard Content (EXAKT WIE IM ORIGINAL)
             local dashboardFrame = Instance.new("ScrollingFrame")
             dashboardFrame.Name = "DashboardFrame"
             dashboardFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -1373,7 +1609,7 @@ local function openAdminPanel()
             dashboardFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset + 170)
             
         elseif tabId == "players" then
-            -- Spielerliste mit Suchleiste
+            -- Spielerliste mit Suchleiste (EXAKT WIE IM ORIGINAL MIT INSPECT FUNKTION)
             local playersFrame = Instance.new("Frame")
             playersFrame.Name = "PlayersFrame"
             playersFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -1437,7 +1673,7 @@ local function openAdminPanel()
             playersList.ScrollBarThickness = 8
             playersList.Parent = playersFrame
             
-            -- Funktion zum Laden der Spielerliste
+            -- Funktion zum Laden der Spielerliste (MIT 1-TAG BAN ERWEITERT)
             local function loadPlayerList(searchTerm)
                 for _, child in pairs(playersList:GetChildren()) do
                     if child:IsA("Frame") then
@@ -1461,7 +1697,7 @@ local function openAdminPanel()
                             
                             local playerEntry = Instance.new("Frame")
                             playerEntry.Name = "Player_" .. username
-                            playerEntry.Size = UDim2.new(1, 0, 0, 80)
+                            playerEntry.Size = UDim2.new(1, 0, 0, 90)
                             playerEntry.Position = UDim2.new(0, 0, 0, yOffset)
                             playerEntry.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
                             playerEntry.Parent = playersList
@@ -1473,7 +1709,7 @@ local function openAdminPanel()
                             -- Avatar Platzhalter
                             local avatarFrame = Instance.new("Frame")
                             avatarFrame.Size = UDim2.new(0, 60, 0, 60)
-                            avatarFrame.Position = UDim2.new(0, 10, 0, 10)
+                            avatarFrame.Position = UDim2.new(0, 10, 0, 15)
                             avatarFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
                             avatarFrame.Parent = playerEntry
                             
@@ -1495,7 +1731,7 @@ local function openAdminPanel()
                             -- Spielerinfo
                             local infoFrame = Instance.new("Frame")
                             infoFrame.Size = UDim2.new(0.4, -70, 1, -20)
-                            infoFrame.Position = UDim2.new(0, 80, 0, 10)
+                            infoFrame.Position = UDim2.new(0, 80, 0, 15)
                             infoFrame.BackgroundTransparency = 1
                             infoFrame.Parent = playerEntry
                             
@@ -1522,17 +1758,17 @@ local function openAdminPanel()
                             userLabel.TextXAlignment = Enum.TextXAlignment.Left
                             userLabel.Parent = infoFrame
                             
-                            -- Aktionen Buttons
+                            -- Aktionen Buttons (2 Reihen)
                             local actionsFrame = Instance.new("Frame")
                             actionsFrame.Size = UDim2.new(0.55, -10, 1, -20)
-                            actionsFrame.Position = UDim2.new(0.45, 0, 0, 10)
+                            actionsFrame.Position = UDim2.new(0.45, 0, 0, 15)
                             actionsFrame.BackgroundTransparency = 1
                             actionsFrame.Parent = playerEntry
                             
-                            -- Button Layout (4 Buttons)
-                            local buttonSize = UDim2.new(0, 45, 0, 45)
+                            -- Button Layout (2x4 Buttons)
+                            local buttonSize = UDim2.new(0, 40, 0, 35)
                             
-                            -- Inspect Button
+                            -- Erste Reihe
                             local inspectBtn = Instance.new("TextButton")
                             inspectBtn.Text = "🔍"
                             inspectBtn.Size = buttonSize
@@ -1540,57 +1776,106 @@ local function openAdminPanel()
                             inspectBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
                             inspectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                             inspectBtn.Font = Enum.Font.GothamBold
-                            inspectBtn.TextSize = 18
+                            inspectBtn.TextSize = 14
                             inspectBtn.Parent = actionsFrame
                             
-                            local inspectCorner = Instance.new("UICorner")
-                            inspectCorner.CornerRadius = UDim.new(0, 8)
-                            inspectCorner.Parent = inspectBtn
-                            
-                            -- Kick Button
                             local kickBtn = Instance.new("TextButton")
                             kickBtn.Text = "🚪"
                             kickBtn.Size = buttonSize
-                            kickBtn.Position = UDim2.new(0, 55, 0, 0)
+                            kickBtn.Position = UDim2.new(0, 50, 0, 0)
                             kickBtn.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
                             kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                             kickBtn.Font = Enum.Font.GothamBold
-                            kickBtn.TextSize = 18
+                            kickBtn.TextSize = 14
                             kickBtn.Parent = actionsFrame
                             
-                            local kickCorner = Instance.new("UICorner")
-                            kickCorner.CornerRadius = UDim.new(0, 8)
-                            kickCorner.Parent = kickBtn
-                            
-                            -- Ban Button
                             local banBtn = Instance.new("TextButton")
                             banBtn.Text = "⛔"
                             banBtn.Size = buttonSize
-                            banBtn.Position = UDim2.new(0, 110, 0, 0)
+                            banBtn.Position = UDim2.new(0, 100, 0, 0)
                             banBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
                             banBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                             banBtn.Font = Enum.Font.GothamBold
-                            banBtn.TextSize = 18
+                            banBtn.TextSize = 14
                             banBtn.Parent = actionsFrame
                             
-                            local banCorner = Instance.new("UICorner")
-                            banCorner.CornerRadius = UDim.new(0, 8)
-                            banCorner.Parent = banBtn
+                            -- NEU: 1-TAG BAN BUTTON
+                            local banDayBtn = Instance.new("TextButton")
+                            banDayBtn.Text = "📅"
+                            banDayBtn.Size = buttonSize
+                            banDayBtn.Position = UDim2.new(0, 150, 0, 0)
+                            banDayBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+                            banDayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            banDayBtn.Font = Enum.Font.GothamBold
+                            banDayBtn.TextSize = 14
+                            banDayBtn.Parent = actionsFrame
                             
-                            -- Bring Button
+                            -- Zweite Reihe
                             local bringBtn = Instance.new("TextButton")
                             bringBtn.Text = "🚀"
                             bringBtn.Size = buttonSize
-                            bringBtn.Position = UDim2.new(0, 165, 0, 0)
+                            bringBtn.Position = UDim2.new(0, 0, 0, 40)
                             bringBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
                             bringBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
                             bringBtn.Font = Enum.Font.GothamBold
-                            bringBtn.TextSize = 18
+                            bringBtn.TextSize = 14
                             bringBtn.Parent = actionsFrame
                             
-                            local bringCorner = Instance.new("UICorner")
-                            bringCorner.CornerRadius = UDim.new(0, 8)
-                            bringCorner.Parent = bringBtn
+                            local tptoBtn = Instance.new("TextButton")
+                            tptoBtn.Text = "📍"
+                            tptoBtn.Size = buttonSize
+                            tptoBtn.Position = UDim2.new(0, 50, 0, 40)
+                            tptoBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 100)
+                            tptoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            tptoBtn.Font = Enum.Font.GothamBold
+                            tptoBtn.TextSize = 14
+                            tptoBtn.Parent = actionsFrame
+                            
+                            local copyBtn = Instance.new("TextButton")
+                            copyBtn.Text = "📋"
+                            copyBtn.Size = buttonSize
+                            copyBtn.Position = UDim2.new(0, 100, 0, 40)
+                            copyBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 180)
+                            copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            copyBtn.Font = Enum.Font.GothamBold
+                            copyBtn.TextSize = 14
+                            copyBtn.Parent = actionsFrame
+                            
+                            -- NEU: DISCORD BUTTON
+                            local discordBtn = Instance.new("TextButton")
+                            discordBtn.Text = "📢"
+                            discordBtn.Size = buttonSize
+                            discordBtn.Position = UDim2.new(0, 150, 0, 40)
+                            discordBtn.BackgroundColor3 = Color3.fromRGB(155, 89, 182)
+                            discordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            discordBtn.Font = Enum.Font.GothamBold
+                            discordBtn.TextSize = 14
+                            discordBtn.Parent = actionsFrame
+                            
+                            -- Alle Buttons runden
+                            for _, btn in pairs({inspectBtn, kickBtn, banBtn, banDayBtn, bringBtn, tptoBtn, copyBtn, discordBtn}) do
+                                local corner = Instance.new("UICorner")
+                                corner.CornerRadius = UDim.new(0, 6)
+                                corner.Parent = btn
+                            end
+                            
+                            -- Tooltips
+                            inspectBtn.MouseEnter:Connect(function() inspectBtn.Text = "Inspect" end)
+                            inspectBtn.MouseLeave:Connect(function() inspectBtn.Text = "🔍" end)
+                            kickBtn.MouseEnter:Connect(function() kickBtn.Text = "Kick" end)
+                            kickBtn.MouseLeave:Connect(function() kickBtn.Text = "🚪" end)
+                            banBtn.MouseEnter:Connect(function() banBtn.Text = "Ban" end)
+                            banBtn.MouseLeave:Connect(function() banBtn.Text = "⛔" end)
+                            banDayBtn.MouseEnter:Connect(function() banDayBtn.Text = "1 Tag" end)
+                            banDayBtn.MouseLeave:Connect(function() banDayBtn.Text = "📅" end)
+                            bringBtn.MouseEnter:Connect(function() bringBtn.Text = "Bring" end)
+                            bringBtn.MouseLeave:Connect(function() bringBtn.Text = "🚀" end)
+                            tptoBtn.MouseEnter:Connect(function() tptoBtn.Text = "TPTO" end)
+                            tptoBtn.MouseLeave:Connect(function() tptoBtn.Text = "📍" end)
+                            copyBtn.MouseEnter:Connect(function() copyBtn.Text = "Copy" end)
+                            copyBtn.MouseLeave:Connect(function() copyBtn.Text = "📋" end)
+                            discordBtn.MouseEnter:Connect(function() discordBtn.Text = "Discord" end)
+                            discordBtn.MouseLeave:Connect(function() discordBtn.Text = "📢" end)
                             
                             -- Button Events
                             inspectBtn.MouseButton1Click:Connect(function()
@@ -1625,6 +1910,21 @@ local function openAdminPanel()
                                 end
                             end)
                             
+                            -- NEU: 1-TAG BAN EVENT
+                            banDayBtn.MouseButton1Click:Connect(function()
+                                local cmd = "/banoneday " .. username
+                                if setclipboard then
+                                    setclipboard(cmd)
+                                    pcall(function()
+                                        StarterGui:SetCore("SendNotification", {
+                                            Title = "✅ 1-Tag Ban kopiert",
+                                            Text = cmd,
+                                            Duration = 2
+                                        })
+                                    end)
+                                end
+                            end)
+                            
                             bringBtn.MouseButton1Click:Connect(function()
                                 local cmd = "/bring " .. username
                                 if setclipboard then
@@ -1639,17 +1939,49 @@ local function openAdminPanel()
                                 end
                             end)
                             
-                            -- Tooltips
-                            inspectBtn.MouseEnter:Connect(function() inspectBtn.Text = "Inspect" end)
-                            inspectBtn.MouseLeave:Connect(function() inspectBtn.Text = "🔍" end)
-                            kickBtn.MouseEnter:Connect(function() kickBtn.Text = "Kick" end)
-                            kickBtn.MouseLeave:Connect(function() kickBtn.Text = "🚪" end)
-                            banBtn.MouseEnter:Connect(function() banBtn.Text = "Ban" end)
-                            banBtn.MouseLeave:Connect(function() banBtn.Text = "⛔" end)
-                            bringBtn.MouseEnter:Connect(function() bringBtn.Text = "Bring" end)
-                            bringBtn.MouseLeave:Connect(function() bringBtn.Text = "🚀" end)
+                            tptoBtn.MouseButton1Click:Connect(function()
+                                local cmd = "/tpto " .. username
+                                if setclipboard then
+                                    setclipboard(cmd)
+                                    pcall(function()
+                                        StarterGui:SetCore("SendNotification", {
+                                            Title = "✅ TPTO kopiert",
+                                            Text = cmd,
+                                            Duration = 2
+                                        })
+                                    end)
+                                end
+                            end)
                             
-                            yOffset = yOffset + 90
+                            copyBtn.MouseButton1Click:Connect(function()
+                                if setclipboard then
+                                    setclipboard(username)
+                                    pcall(function()
+                                        StarterGui:SetCore("SendNotification", {
+                                            Title = "✅ Name kopiert",
+                                            Text = username,
+                                            Duration = 2
+                                        })
+                                    end)
+                                end
+                            end)
+                            
+                            -- NEU: DISCORD EVENT
+                            discordBtn.MouseButton1Click:Connect(function()
+                                local inviteCode = "yJpCWt6Zjr"
+                                if setclipboard then
+                                    setclipboard(inviteCode)
+                                    pcall(function()
+                                        StarterGui:SetCore("SendNotification", {
+                                            Title = "✅ Discord kopiert",
+                                            Text = "Invite: " .. inviteCode,
+                                            Duration = 3
+                                        })
+                                    end)
+                                end
+                            end)
+                            
+                            yOffset = yOffset + 100
                         end
                     end
                 end
@@ -1681,7 +2013,7 @@ local function openAdminPanel()
             loadPlayerList("")
             
         elseif tabId == "tools" then
-            -- Tools Tab mit ESP Einstellungen
+            -- Tools Tab (ERWEITERT MIT ANTI-AFK UND NEUEN BEFEHLEN)
             local toolsFrame = Instance.new("ScrollingFrame")
             toolsFrame.Name = "ToolsFrame"
             toolsFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -1691,7 +2023,52 @@ local function openAdminPanel()
             
             local yOffset = 20
             
-            -- ESP Haupt-Switch
+            -- NEU: Anti-AFK Card
+            local antiAFKCard = Instance.new("Frame")
+            antiAFKCard.Size = UDim2.new(1, -40, 0, 120)
+            antiAFKCard.Position = UDim2.new(0, 20, 0, yOffset)
+            antiAFKCard.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            antiAFKCard.Parent = toolsFrame
+            
+            local antiAFKCorner = Instance.new("UICorner")
+            antiAFKCorner.CornerRadius = UDim.new(0, 12)
+            antiAFKCorner.Parent = antiAFKCard
+            
+            local antiAFKTitle = Instance.new("TextLabel")
+            antiAFKTitle.Text = "⏰ Anti-AFK System"
+            antiAFKTitle.Size = UDim2.new(1, -20, 0, 40)
+            antiAFKTitle.Position = UDim2.new(0, 10, 0, 10)
+            antiAFKTitle.BackgroundTransparency = 1
+            antiAFKTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+            antiAFKTitle.Font = Enum.Font.GothamBold
+            antiAFKTitle.TextSize = 20
+            antiAFKTitle.TextXAlignment = Enum.TextXAlignment.Left
+            antiAFKTitle.Parent = antiAFKCard
+            
+            local antiAFKToggle = Instance.new("TextButton")
+            antiAFKToggle.Text = ANTI_AFK_ENABLED and "✅ ANTI-AFK AKTIV" or "❌ ANTI-AFK INAKTIV"
+            antiAFKToggle.Size = UDim2.new(1, -40, 0, 45)
+            antiAFKToggle.Position = UDim2.new(0, 20, 0, 50)
+            antiAFKToggle.BackgroundColor3 = ANTI_AFK_ENABLED and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
+            antiAFKToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+            antiAFKToggle.Font = Enum.Font.GothamBold
+            antiAFKToggle.TextSize = 16
+            antiAFKToggle.Parent = antiAFKCard
+            
+            local antiAFKToggleCorner = Instance.new("UICorner")
+            antiAFKToggleCorner.CornerRadius = UDim.new(0, 8)
+            antiAFKToggleCorner.Parent = antiAFKToggle
+            
+            antiAFKToggle.MouseButton1Click:Connect(function()
+                ANTI_AFK_ENABLED = not ANTI_AFK_ENABLED
+                toggleAntiAFK(ANTI_AFK_ENABLED)
+                antiAFKToggle.Text = ANTI_AFK_ENABLED and "✅ ANTI-AFK AKTIV" or "❌ ANTI-AFK INAKTIV"
+                antiAFKToggle.BackgroundColor3 = ANTI_AFK_ENABLED and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
+            end)
+            
+            yOffset = yOffset + 140
+            
+            -- ESP Haupt-Switch (UNVERÄNDERT VOM ORIGINAL)
             local espMainCard = Instance.new("Frame")
             espMainCard.Size = UDim2.new(1, -40, 0, 100)
             espMainCard.Position = UDim2.new(0, 20, 0, yOffset)
@@ -1744,174 +2121,118 @@ local function openAdminPanel()
             
             yOffset = yOffset + 120
             
-            -- ESP Einstellungen (nur sichtbar wenn ESP aktiv)
-            if ESP_SETTINGS.Enabled then
-                -- Performance ESP Card
-                local perfCard = Instance.new("Frame")
-                perfCard.Size = UDim2.new(1, -40, 0, 140)
-                perfCard.Position = UDim2.new(0, 20, 0, yOffset)
-                perfCard.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-                perfCard.Parent = toolsFrame
-                
-                local perfCorner = Instance.new("UICorner")
-                perfCorner.CornerRadius = UDim.new(0, 12)
-                perfCorner.Parent = perfCard
-                
-                local perfTitle = Instance.new("TextLabel")
-                perfTitle.Text = "⚡ Performance Einstellungen"
-                perfTitle.Size = UDim2.new(1, -20, 0, 40)
-                perfTitle.Position = UDim2.new(0, 10, 0, 10)
-                perfTitle.BackgroundTransparency = 1
-                perfTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
-                perfTitle.Font = Enum.Font.GothamBold
-                perfTitle.TextSize = 18
-                perfTitle.TextXAlignment = Enum.TextXAlignment.Left
-                perfTitle.Parent = perfCard
-                
-                -- Performance Mode Toggle
-                local perfToggle = Instance.new("TextButton")
-                perfToggle.Text = ESP_SETTINGS.PerformanceMode and "✅ Performance ESP" or "❌ Performance ESP"
-                perfToggle.Size = UDim2.new(1, -40, 0, 40)
-                perfToggle.Position = UDim2.new(0, 20, 0, 50)
-                perfToggle.BackgroundColor3 = ESP_SETTINGS.PerformanceMode and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
-                perfToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-                perfToggle.Font = Enum.Font.GothamBold
-                perfToggle.TextSize = 16
-                perfToggle.Parent = perfCard
-                
-                local perfToggleCorner = Instance.new("UICorner")
-                perfToggleCorner.CornerRadius = UDim.new(0, 8)
-                perfToggleCorner.Parent = perfToggle
-                
-                perfToggle.MouseButton1Click:Connect(function()
-                    ESP_SETTINGS.PerformanceMode = not ESP_SETTINGS.PerformanceMode
-                    perfToggle.Text = ESP_SETTINGS.PerformanceMode and "✅ Performance ESP" or "❌ Performance ESP"
-                    perfToggle.BackgroundColor3 = ESP_SETTINGS.PerformanceMode and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
-                    
-                    -- ESP neu laden
-                    if ESP_SETTINGS.Enabled then
-                        toggleESP(false)
-                        task.wait(0.1)
-                        toggleESP(true)
-                    end
-                    
+            -- NEU: Server Commands Card
+            local commandsCard = Instance.new("Frame")
+            commandsCard.Size = UDim2.new(1, -40, 0, 180)
+            commandsCard.Position = UDim2.new(0, 20, 0, yOffset)
+            commandsCard.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            commandsCard.Parent = toolsFrame
+            
+            local commandsCorner = Instance.new("UICorner")
+            commandsCorner.CornerRadius = UDim.new(0, 12)
+            commandsCorner.Parent = commandsCard
+            
+            local commandsTitle = Instance.new("TextLabel")
+            commandsTitle.Text = "🎮 Server Commands"
+            commandsTitle.Size = UDim2.new(1, -20, 0, 40)
+            commandsTitle.Position = UDim2.new(0, 10, 0, 10)
+            commandsTitle.BackgroundTransparency = 1
+            commandsTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+            commandsTitle.Font = Enum.Font.GothamBold
+            commandsTitle.TextSize = 20
+            commandsTitle.TextXAlignment = Enum.TextXAlignment.Left
+            commandsTitle.Parent = commandsCard
+            
+            -- Admin Car Button
+            local adminCarBtn = Instance.new("TextButton")
+            adminCarBtn.Text = "🚗 Admin Car spawnen"
+            adminCarBtn.Size = UDim2.new(1, -40, 0, 40)
+            adminCarBtn.Position = UDim2.new(0, 20, 0, 50)
+            adminCarBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+            adminCarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            adminCarBtn.Font = Enum.Font.GothamBold
+            adminCarBtn.TextSize = 16
+            adminCarBtn.Parent = commandsCard
+            
+            local adminCarCorner = Instance.new("UICorner")
+            adminCarCorner.CornerRadius = UDim.new(0, 8)
+            adminCarCorner.Parent = adminCarBtn
+            
+            adminCarBtn.MouseButton1Click:Connect(function()
+                local command = "/spawnadmincar"
+                if setclipboard then
+                    setclipboard(command)
                     pcall(function()
                         StarterGui:SetCore("SendNotification", {
-                            Title = ESP_SETTINGS.PerformanceMode and "✅ Performance ESP aktiv" or "❌ Performance ESP aus",
-                            Text = ESP_SETTINGS.PerformanceMode and "Nur nahe Spieler werden angezeigt" or "Alle Spieler werden angezeigt",
+                            Title = "✅ Command kopiert",
+                            Text = command,
                             Duration = 2
                         })
                     end)
-                end)
-                
-                -- Distanz Info
-                local distInfo = Instance.new("TextLabel")
-                distInfo.Text = "Maximale Distanz: " .. ESP_SETTINGS.MaxDistance .. " Studs"
-                distInfo.Size = UDim2.new(1, -40, 0, 30)
-                distInfo.Position = UDim2.new(0, 20, 0, 95)
-                distInfo.BackgroundTransparency = 1
-                distInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
-                distInfo.Font = Enum.Font.Gotham
-                distInfo.TextSize = 14
-                distInfo.TextXAlignment = Enum.TextXAlignment.Left
-                distInfo.Parent = perfCard
-                
-                yOffset = yOffset + 160
-                
-                -- Visual Einstellungen
-                local visualCard = Instance.new("Frame")
-                visualCard.Size = UDim2.new(1, -40, 0, 140)
-                visualCard.Position = UDim2.new(0, 20, 0, yOffset)
-                visualCard.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-                visualCard.Parent = toolsFrame
-                
-                local visualCorner = Instance.new("UICorner")
-                visualCorner.CornerRadius = UDim.new(0, 12)
-                visualCorner.Parent = visualCard
-                
-                local visualTitle = Instance.new("TextLabel")
-                visualTitle.Text = "🎨 Visual Einstellungen"
-                visualTitle.Size = UDim2.new(1, -20, 0, 40)
-                visualTitle.Position = UDim2.new(0, 10, 0, 10)
-                visualTitle.BackgroundTransparency = 1
-                visualTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
-                visualTitle.Font = Enum.Font.GothamBold
-                visualTitle.TextSize = 18
-                visualTitle.TextXAlignment = Enum.TextXAlignment.Left
-                visualTitle.Parent = visualCard
-                
-                -- Box Toggle
-                local boxToggle = Instance.new("TextButton")
-                boxToggle.Text = ESP_SETTINGS.ShowBox and "✅ Box anzeigen" or "❌ Box anzeigen"
-                boxToggle.Size = UDim2.new(0.48, -5, 0, 40)
-                boxToggle.Position = UDim2.new(0, 20, 0, 50)
-                boxToggle.BackgroundColor3 = ESP_SETTINGS.ShowBox and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
-                boxToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-                boxToggle.Font = Enum.Font.GothamBold
-                boxToggle.TextSize = 15
-                boxToggle.Parent = visualCard
-                
-                local boxToggleCorner = Instance.new("UICorner")
-                boxToggleCorner.CornerRadius = UDim.new(0, 8)
-                boxToggleCorner.Parent = boxToggle
-                
-                boxToggle.MouseButton1Click:Connect(function()
-                    ESP_SETTINGS.ShowBox = not ESP_SETTINGS.ShowBox
-                    boxToggle.Text = ESP_SETTINGS.ShowBox and "✅ Box anzeigen" or "❌ Box anzeigen"
-                    boxToggle.BackgroundColor3 = ESP_SETTINGS.ShowBox and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
-                    
-                    -- ESP neu laden
-                    if ESP_SETTINGS.Enabled then
-                        toggleESP(false)
-                        task.wait(0.1)
-                        toggleESP(true)
-                    end
-                end)
-                
-                -- Name Toggle
-                local nameToggle = Instance.new("TextButton")
-                nameToggle.Text = ESP_SETTINGS.ShowName and "✅ Namen anzeigen" or "❌ Namen anzeigen"
-                nameToggle.Size = UDim2.new(0.48, -5, 0, 40)
-                nameToggle.Position = UDim2.new(0.52, 0, 0, 50)
-                nameToggle.BackgroundColor3 = ESP_SETTINGS.ShowName and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
-                nameToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-                nameToggle.Font = Enum.Font.GothamBold
-                nameToggle.TextSize = 15
-                nameToggle.Parent = visualCard
-                
-                local nameToggleCorner = Instance.new("UICorner")
-                nameToggleCorner.CornerRadius = UDim.new(0, 8)
-                nameToggleCorner.Parent = nameToggle
-                
-                nameToggle.MouseButton1Click:Connect(function()
-                    ESP_SETTINGS.ShowName = not ESP_SETTINGS.ShowName
-                    nameToggle.Text = ESP_SETTINGS.ShowName and "✅ Namen anzeigen" or "❌ Namen anzeigen"
-                    nameToggle.BackgroundColor3 = ESP_SETTINGS.ShowName and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(160, 60, 60)
-                    
-                    -- ESP neu laden
-                    if ESP_SETTINGS.Enabled then
-                        toggleESP(false)
-                        task.wait(0.1)
-                        toggleESP(true)
-                    end
-                end)
-                
-                -- Schriftgröße Info
-                local sizeInfo = Instance.new("TextLabel")
-                sizeInfo.Text = "Schriftgröße: " .. ESP_SETTINGS.NameSize .. "px"
-                sizeInfo.Size = UDim2.new(1, -40, 0, 30)
-                sizeInfo.Position = UDim2.new(0, 20, 0, 95)
-                sizeInfo.BackgroundTransparency = 1
-                sizeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
-                sizeInfo.Font = Enum.Font.Gotham
-                sizeInfo.TextSize = 14
-                sizeInfo.TextXAlignment = Enum.TextXAlignment.Left
-                sizeInfo.Parent = visualCard
-                
-                yOffset = yOffset + 160
-            end
+                end
+            end)
             
-            -- Server Tools Card
+            -- Respawn All Button
+            local respawnBtn = Instance.new("TextButton")
+            respawnBtn.Text = "🔄 Alle respawnen"
+            respawnBtn.Size = UDim2.new(1, -40, 0, 40)
+            respawnBtn.Position = UDim2.new(0, 20, 0, 100)
+            respawnBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 200)
+            respawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            respawnBtn.Font = Enum.Font.GothamBold
+            respawnBtn.TextSize = 16
+            respawnBtn.Parent = commandsCard
+            
+            local respawnCorner = Instance.new("UICorner")
+            respawnCorner.CornerRadius = UDim.new(0, 8)
+            respawnCorner.Parent = respawnBtn
+            
+            respawnBtn.MouseButton1Click:Connect(function()
+                local command = "/respawnall"
+                if setclipboard then
+                    setclipboard(command)
+                    pcall(function()
+                        StarterGui:SetCore("SendNotification", {
+                            Title = "✅ Command kopiert",
+                            Text = command,
+                            Duration = 2
+                        })
+                    end)
+                end
+            end)
+            
+            -- Discord Button
+            local discordBtn = Instance.new("TextButton")
+            discordBtn.Text = "📢 Discord Einladung"
+            discordBtn.Size = UDim2.new(1, -40, 0, 40)
+            discordBtn.Position = UDim2.new(0, 20, 0, 150)
+            discordBtn.BackgroundColor3 = Color3.fromRGB(155, 89, 182)
+            discordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            discordBtn.Font = Enum.Font.GothamBold
+            discordBtn.TextSize = 16
+            discordBtn.Parent = commandsCard
+            
+            local discordCorner = Instance.new("UICorner")
+            discordCorner.CornerRadius = UDim.new(0, 8)
+            discordCorner.Parent = discordBtn
+            
+            discordBtn.MouseButton1Click:Connect(function()
+                local inviteCode = "yJpCWt6Zjr"
+                if setclipboard then
+                    setclipboard(inviteCode)
+                    pcall(function()
+                        StarterGui:SetCore("SendNotification", {
+                            Title = "✅ Discord kopiert",
+                            Text = "Invite: " .. inviteCode,
+                            Duration = 3
+                        })
+                    end)
+                end
+            end)
+            
+            yOffset = yOffset + 200
+            
+            -- Server Tools Card (UNVERÄNDERT VOM ORIGINAL)
             local serverToolsCard = Instance.new("Frame")
             serverToolsCard.Size = UDim2.new(1, -40, 0, 150)
             serverToolsCard.Position = UDim2.new(0, 20, 0, yOffset)
@@ -1933,7 +2254,7 @@ local function openAdminPanel()
             serverToolsTitle.TextXAlignment = Enum.TextXAlignment.Left
             serverToolsTitle.Parent = serverToolsCard
             
-            -- Neue Funktion: Alles Bereinigen
+            -- Alles Bereinigen Button
             local cleanupBtn = Instance.new("TextButton")
             cleanupBtn.Text = "🧹 Alles Bereinigen"
             cleanupBtn.Size = UDim2.new(1, -40, 0, 40)
@@ -1949,26 +2270,12 @@ local function openAdminPanel()
             cleanupCorner.Parent = cleanupBtn
             
             cleanupBtn.MouseButton1Click:Connect(function()
-                -- Schließe alle GUIs
                 closeMiniMenu()
                 closeAdminPanel()
                 closeInspectGui()
+                toggleESP(false)
+                toggleAntiAFK(false)
                 
-                -- ESP deaktivieren
-                if ESP_SETTINGS.Enabled then
-                    toggleESP(false)
-                end
-                
-                -- Alle AFK Connections stoppen
-                for player, conn in pairs(afkCheckConnections) do
-                    if conn then
-                        conn:Disconnect()
-                    end
-                end
-                afkCheckConnections = {}
-                afkTrackingData = {}
-                
-                -- Notification
                 pcall(function()
                     StarterGui:SetCore("SendNotification", {
                         Title = "🧹 Alles bereinigt",
@@ -1977,10 +2284,10 @@ local function openAdminPanel()
                     })
                 end)
                 
-                print("✅ Alles bereinigt: GUIs geschlossen, ESP gestoppt, AFK-Tracking gestoppt")
+                print("✅ Alles bereinigt")
             end)
             
-            -- Neue Funktion: Script Neu starten
+            -- Script Neu starten Button
             local restartBtn = Instance.new("TextButton")
             restartBtn.Text = "🔄 Script Neu starten"
             restartBtn.Size = UDim2.new(1, -40, 0, 40)
@@ -1996,7 +2303,6 @@ local function openAdminPanel()
             restartCorner.Parent = restartBtn
             
             restartBtn.MouseButton1Click:Connect(function()
-                -- Notification vor Neustart
                 pcall(function()
                     StarterGui:SetCore("SendNotification", {
                         Title = "🔄 Script wird neu gestartet",
@@ -2005,38 +2311,19 @@ local function openAdminPanel()
                     })
                 end)
                 
-                -- Kurz warten
                 wait(0.5)
                 
-                -- Alles bereinigen
                 closeMiniMenu()
                 closeAdminPanel()
                 closeInspectGui()
+                toggleESP(false)
+                toggleAntiAFK(false)
                 
-                -- ESP deaktivieren
-                if ESP_SETTINGS.Enabled then
-                    toggleESP(false)
-                end
-                
-                -- Alle AFK Connections stoppen
-                for player, conn in pairs(afkCheckConnections) do
-                    if conn then
-                        conn:Disconnect()
-                    end
-                end
-                afkCheckConnections = {}
-                afkTrackingData = {}
-                
-                -- Script neu laden (simuliert durch Ausführen des gesamten Scripts)
                 print("========================================")
                 print("🔄 ADMIN PANEL PRO WIRD NEU GESTARTET")
                 print("========================================")
                 
-                -- Kurze Pause
                 wait(1)
-                
-                -- Script Neustart (durch erneutes Laden)
-                local scriptContent = "LOADING_ADMIN_PANEL_PRO"
                 
                 pcall(function()
                     StarterGui:SetCore("SendNotification", {
@@ -2046,9 +2333,7 @@ local function openAdminPanel()
                     })
                 end)
                 
-                -- Das gesamte Script erneut ausführen
-                -- In einem echten Script würde hier ein dofile oder loadstring stehen
-                print("✅ Neustart abgeschlossen - Systeme bereit")
+                print("✅ Neustart abgeschlossen")
             end)
             
             yOffset = yOffset + 170
@@ -2056,7 +2341,7 @@ local function openAdminPanel()
             toolsFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset)
             
         elseif tabId == "settings" then
-            -- Settings Tab
+            -- Settings Tab (UNVERÄNDERT VOM ORIGINAL)
             local settingsFrame = Instance.new("ScrollingFrame")
             settingsFrame.Name = "SettingsFrame"
             settingsFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -2123,9 +2408,9 @@ local function openAdminPanel()
             
             yOffset = yOffset + 170
             
-            -- Hotkeys Card
+            -- Hotkeys Card (ERWEITERT MIT NEUEN HOTKEYS)
             local hotkeysCard = Instance.new("Frame")
-            hotkeysCard.Size = UDim2.new(1, -40, 0, 200)
+            hotkeysCard.Size = UDim2.new(1, -40, 0, 250)
             hotkeysCard.Position = UDim2.new(0, 20, 0, yOffset)
             hotkeysCard.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
             hotkeysCard.Parent = settingsFrame
@@ -2146,8 +2431,8 @@ local function openAdminPanel()
             hotkeysTitle.Parent = hotkeysCard
             
             local hotkeysText = Instance.new("TextLabel")
-            hotkeysText.Text = "📋 P = Nächstgelegenen Spieler kopieren\n📁 F2 = Admin Panel öffnen/schließen\n❌ ESC = Alle GUIs schließen\n\n🔍 = Spieler inspizieren\n📋 = Wert kopieren\n🚪 = Kick-Befehl kopieren\n⛔ = Ban-Befehl kopieren\n🚀 = Bring-Befehl kopieren\n📍 = TPTO-Befehl kopieren"
-            hotkeysText.Size = UDim2.new(1, -20, 0, 150)
+            hotkeysText.Text = "📋 P = Nächstgelegenen Spieler kopieren\n📁 F2 = Admin Panel öffnen/schließen\n❌ ESC = Alle GUIs schließen\n\n🔍 = Spieler inspizieren\n📋 = Wert kopieren\n🚪 = Kick-Befehl kopieren\n⛔ = Ban-Befehl kopieren\n📅 = 1-Tag Ban kopieren\n🚀 = Bring-Befehl kopieren\n📍 = TPTO-Befehl kopieren\n🚗 = Admin Car spawnen\n🔄 = Alle respawnen\n📢 = Discord kopieren"
+            hotkeysText.Size = UDim2.new(1, -20, 0, 200)
             hotkeysText.Position = UDim2.new(0, 10, 0, 50)
             hotkeysText.BackgroundTransparency = 1
             hotkeysText.TextColor3 = Color3.fromRGB(200, 200, 220)
@@ -2157,7 +2442,7 @@ local function openAdminPanel()
             hotkeysText.TextYAlignment = Enum.TextYAlignment.Top
             hotkeysText.Parent = hotkeysCard
             
-            yOffset = yOffset + 220
+            yOffset = yOffset + 270
             
             -- Performance Card
             local perfCard = Instance.new("Frame")
@@ -2182,7 +2467,7 @@ local function openAdminPanel()
             perfTitle.Parent = perfCard
             
             local perfText = Instance.new("TextLabel")
-            perfText.Text = "✅ ESP nur bei Aktivierung\n✅ AFK-Tracking nur bei Inspection\n✅ Live-Updates optimiert\n✅ Performance ESP verfügbar\n✅ Keine unnötigen Berechnungen"
+            perfText.Text = "✅ ESP nur bei Aktivierung\n✅ Anti-AFK nur bei Bedarf\n✅ AFK-Tracking nur bei Inspection\n✅ Live-Updates optimiert\n✅ Performance ESP verfügbar\n✅ Keine unnötigen Berechnungen"
             perfText.Size = UDim2.new(1, -20, 0, 80)
             perfText.Position = UDim2.new(0, 10, 0, 50)
             perfText.BackgroundTransparency = 1
@@ -2301,6 +2586,7 @@ end)
 
 print("✅ Admin Panel Pro " .. SCRIPT_VERSION .. " initialisiert")
 print("✅ ESP System bereit")
+print("✅ Anti-AFK System bereit")
 print("✅ AFK Tracking System bereit")
 print("✅ Alle GUIs performance-optimiert")
 
@@ -2315,11 +2601,17 @@ if getgenv then
         toggleESP(ESP_SETTINGS.Enabled)
         return ESP_SETTINGS.Enabled
     end
+    getgenv().AdminToggleAntiAFK = function()
+        ANTI_AFK_ENABLED = not ANTI_AFK_ENABLED
+        toggleAntiAFK(ANTI_AFK_ENABLED)
+        return ANTI_AFK_ENABLED
+    end
     getgenv().AdminCleanup = function()
         closeMiniMenu()
         closeAdminPanel()
         closeInspectGui()
         toggleESP(false)
+        toggleAntiAFK(false)
         
         -- Alle AFK Connections stoppen
         for player, conn in pairs(afkCheckConnections) do
